@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Breaker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="hud">
+      <div class="stat"><span class="label">Score</span><span id="score">0</span></div>
+      <div class="stat"><span class="label">Level</span><span id="level">1</span></div>
+      <div class="stat"><span class="label">Lives</span><span id="lives">3</span></div>
+    </div>
+    <canvas id="game" width="800" height="600"></canvas>
+    <div id="overlay">
+      <div id="overlayCard">
+        <h1 id="overlayTitle">Block Breaker</h1>
+        <p id="overlaySub">Move: mouse or ←/→ &nbsp;·&nbsp; Launch: click or Space</p>
+        <button id="startBtn">Start Game</button>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
