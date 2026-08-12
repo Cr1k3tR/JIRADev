@@ -1,7 +1,7 @@
 """Single source of truth for workflow definition and analysis thresholds.
 
-Nothing in metrics.py, insights.py, or app.py should hardcode a stage name,
-threshold, or window size — it should reference a constant here instead.
+Nothing in metrics.py or app.py should hardcode a stage name, threshold, or
+window size — it should reference a constant here instead.
 """
 
 # Ordered workflow stages an issue moves through on the happy path.
@@ -58,6 +58,13 @@ SYNTHETIC_LABEL_POOL = [
     "backend", "frontend", "infra", "tech-debt", "customer-reported",
     "security", "performance", "flaky-test", "docs",
 ]
+# Unlike labels (free-text tags, global pool), Jira components belong to a
+# specific project — mirrors the SYNTHETIC_TEAMS structure.
+SYNTHETIC_COMPONENTS = {
+    "PAY": ["Checkout", "Fraud Detection", "Ledger"],
+    "PLAT": ["API Gateway", "Data Pipeline", "Auth"],
+    "MOB": ["iOS App", "Android App", "Push Notifications"],
+}
 
 # Probability a given stage transition draws from the heavy-tail (bottleneck)
 # distribution instead of the normal one.

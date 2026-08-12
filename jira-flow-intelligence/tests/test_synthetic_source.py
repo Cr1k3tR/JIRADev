@@ -6,7 +6,7 @@ from data_sources import SyntheticJiraSource
 
 ISSUE_COLUMNS = {
     "issue_key", "project", "team", "issue_type", "priority", "sprint",
-    "labels", "created", "resolved", "current_status", "reopened_count",
+    "labels", "components", "created", "resolved", "current_status", "reopened_count",
 }
 CHANGELOG_COLUMNS = {"issue_key", "stage", "entered_at", "exited_at"}
 
@@ -112,3 +112,15 @@ def test_blocked_stage_appears():
 def test_reopen_increments_count():
     issues = _make_source(num_issues=500).get_issues()
     assert (issues["reopened_count"] > 0).any()
+
+
+def test_components_are_project_scoped():
+    issues = _make_source(num_issues=500).get_issues()
+
+    assert issues["components"].apply(len).sum() > 0  # some issues have components
+
+    for _, row in issues.iterrows():
+        allowed = set(config.SYNTHETIC_COMPONENTS[row["project"]])
+        assert set(row["components"]).issubset(allowed), (
+            f"{row['issue_key']} has a component not in its project's pool"
+        )

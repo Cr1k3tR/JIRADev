@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import streamlit as st
 
+import config
 import metrics
 from data_sources import JiraCloudSource, SyntheticJiraSource
 
@@ -59,11 +60,30 @@ selected_projects = st.sidebar.multiselect("Project", projects, default=projects
 selected_teams = st.sidebar.multiselect("Team", teams, default=teams)
 selected_types = st.sidebar.multiselect("Issue type", issue_types, default=issue_types)
 
+# Labels/components are optional facets: every value offered is drawn from
+# the currently loaded data (locked & controlled — no free text), but an
+# empty selection means "don't filter on this" rather than "match nothing".
+label_pool = sorted({label for row in issues_df["labels"] for label in row})
+component_pool = sorted({comp for row in issues_df["components"] for comp in row})
+selected_labels = st.sidebar.multiselect("Labels (optional)", label_pool, default=[])
+selected_components = st.sidebar.multiselect("Components (optional)", component_pool, default=[])
+
 min_date = issues_df["created"].min().date()
 max_date = issues_df["created"].max().date()
 date_range = st.sidebar.slider(
     "Created date range", min_value=min_date, max_value=max_date, value=(min_date, max_date)
 )
+
+st.sidebar.header("Cycle time boundaries")
+from_stage = st.sidebar.selectbox(
+    "From stage", config.WORKFLOW_STAGES, index=config.WORKFLOW_STAGES.index(config.CYCLE_TIME_START_STAGE)
+)
+to_stage = st.sidebar.selectbox(
+    "To stage", config.WORKFLOW_STAGES, index=config.WORKFLOW_STAGES.index(config.CYCLE_TIME_END_STAGE)
+)
+if config.WORKFLOW_STAGES.index(from_stage) >= config.WORKFLOW_STAGES.index(to_stage):
+    st.sidebar.error("'From' stage must come before 'To' stage in the workflow.")
+    st.stop()
 
 mask = (
     issues_df["project"].isin(selected_projects)
@@ -72,6 +92,10 @@ mask = (
     & (issues_df["created"].dt.date >= date_range[0])
     & (issues_df["created"].dt.date <= date_range[1])
 )
+if selected_labels:
+    mask &= issues_df["labels"].apply(lambda row: any(label in selected_labels for label in row))
+if selected_components:
+    mask &= issues_df["components"].apply(lambda row: any(comp in selected_components for comp in row))
 filtered_issues = issues_df[mask]
 
 if filtered_issues.empty:
@@ -84,7 +108,9 @@ filtered_changelog = changelog_df[changelog_df["issue_key"].isin(filtered_issues
 
 now = pd.Timestamp.now()
 stage_durations_df = metrics.compute_stage_durations(filtered_issues, filtered_changelog, now=now)
-cycle_time_df = metrics.cycle_time(filtered_issues, filtered_changelog, now=now)
+cycle_time_df = metrics.cycle_time(
+    filtered_issues, filtered_changelog, start_stage=from_stage, end_stage=to_stage, now=now
+)
 cycle_stats_df = metrics.cycle_time_stats(cycle_time_df)
 stage_stats_df = metrics.stage_duration_stats(stage_durations_df)
 overall_stage_stats_df = metrics.stage_duration_stats(stage_durations_df, group_by=("stage",))
@@ -101,6 +127,7 @@ overview_tab, bottleneck_tab, wip_tab, deviations_tab = st.tabs(
 # --- Overview -----------------------------------------------------------
 
 with overview_tab:
+    st.caption(f"Cycle time measured from **{from_stage}** to **{to_stage}**.")
     closed_cycle = cycle_time_df[~cycle_time_df["is_open"]]
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Median cycle time", _format_hours(closed_cycle["cycle_time_hours"].median()))

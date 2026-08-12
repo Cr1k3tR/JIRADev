@@ -87,6 +87,12 @@ class SyntheticJiraSource(JiraDataSource):
                 rng.choice(config.SYNTHETIC_LABEL_POOL, size=n_labels, replace=False)
             ) if n_labels else []
 
+            component_pool = config.SYNTHETIC_COMPONENTS[project]
+            n_components = rng.integers(0, 3)
+            components = list(
+                rng.choice(component_pool, size=n_components, replace=False)
+            ) if n_components else []
+
             days_ago = rng.uniform(0, self._history_days)
             created = now - timedelta(days=float(days_ago))
 
@@ -144,6 +150,7 @@ class SyntheticJiraSource(JiraDataSource):
                     "priority": priority,
                     "sprint": sprint,
                     "labels": labels,
+                    "components": components,
                     "created": created,
                     "resolved": resolved_at if resolved_at is not None else pd.NaT,
                     "current_status": current_status,

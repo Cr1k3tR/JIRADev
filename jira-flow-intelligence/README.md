@@ -39,8 +39,24 @@ streamlit run app.py
 ```
 
 Streamlit will open the dashboard in your browser (default
-http://localhost:8501). Use the sidebar to filter by project/team/issue
-type/date range.
+http://localhost:8501).
+
+### Filters (all locked & controlled — no free text)
+
+Every sidebar input is a dropdown/multiselect populated from whatever data
+is currently loaded, never a free-text box — no typos, nothing to validate.
+
+- **Project, Team, Issue type, Created date range** — always applied;
+  default to "everything" (all values pre-selected).
+- **Labels, Components (optional)** — default to an *empty* selection,
+  which means "don't filter on this facet" (not "match nothing"). Pick one
+  or more values to restrict to issues carrying at least one of them.
+- **Cycle time boundaries (From stage / To stage)** — two dropdowns
+  constrained to `config.WORKFLOW_STAGES`, defaulting to
+  `CYCLE_TIME_START_STAGE`/`CYCLE_TIME_END_STAGE`. Picking an invalid order
+  (From at or after To) shows an error rather than computing something
+  meaningless — cycle time is always measured between two real, correctly
+  ordered stages in the configured workflow.
 
 ## Architecture
 
