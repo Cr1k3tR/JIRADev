@@ -1,8 +1,9 @@
 """AI Jira Flow Intelligence — Streamlit dashboard.
 
 The only file that imports Streamlit. Wires filters -> data source ->
-metrics -> insights -> rendering, in 5 tabs matching the MVP deliverables
-from the source governance doc.
+metrics -> rendering, in 4 tabs matching the deterministic MVP deliverables
+from the source governance doc. Fully rule-based — no AI/LLM calls anywhere
+in this app.
 """
 
 import os
@@ -10,8 +11,6 @@ import os
 import pandas as pd
 import streamlit as st
 
-import config
-import insights
 import metrics
 from data_sources import JiraCloudSource, SyntheticJiraSource
 
@@ -95,8 +94,8 @@ iqr_outliers_df = metrics.flag_iqr_outliers(stage_durations_df)
 baseline_shift_df = metrics.detect_baseline_shift(stage_durations_df, now=now)
 ageing_df = metrics.ageing_wip(filtered_issues, stage_durations_df)
 
-overview_tab, bottleneck_tab, wip_tab, deviations_tab, ai_tab = st.tabs(
-    ["Overview", "Bottlenecks", "Ageing WIP", "Deviations", "AI Insights"]
+overview_tab, bottleneck_tab, wip_tab, deviations_tab = st.tabs(
+    ["Overview", "Bottlenecks", "Ageing WIP", "Deviations"]
 )
 
 # --- Overview -----------------------------------------------------------
@@ -159,32 +158,3 @@ with deviations_tab:
 
     st.subheader("Baseline shifts (recent vs. preceding period)")
     st.dataframe(baseline_shift_df, width="stretch")
-
-# --- AI Insights -----------------------------------------------------------
-
-with ai_tab:
-    client = insights.get_client()
-    if client is None:
-        st.info("AI insights disabled — set `ANTHROPIC_API_KEY` to enable this tab. Everything else in the dashboard works without it.")
-    else:
-        if st.button("Generate insights", type="primary"):
-            filters = {
-                "projects": selected_projects,
-                "teams": selected_teams,
-                "issue_types": selected_types,
-                "date_range": [str(date_range[0]), str(date_range[1])],
-            }
-            payload = insights.build_summary_payload(iqr_outliers_df, baseline_shift_df, ageing_df, filters=filters)
-            with st.spinner("Asking Claude..."):
-                result = insights.generate_insights(payload)
-
-            if result.error:
-                st.error(result.error)
-            else:
-                st.subheader("Exception summary")
-                st.write(result.exception_summary)
-                st.subheader("Recommended experiments")
-                for i, exp in enumerate(result.experiments, start=1):
-                    with st.expander(f"Experiment {i}: {exp.hypothesis}"):
-                        st.write(f"**Try:** {exp.experiment}")
-                        st.write(f"**Expected signal:** {exp.expected_signal}")

@@ -1,6 +1,5 @@
 streamlit>=1.38
 pandas>=2.2
 numpy>=1.26
-anthropic>=0.40
 python-dateutil>=2.9
 pytest>=8.0
