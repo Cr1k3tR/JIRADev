@@ -55,7 +55,23 @@ def _format_hours(hours: float) -> str:
     if pd.isna(hours):
         return "—"
     days = hours / 24.0
-    return f"{days:.1f}d" if days >= 1 else f"{hours:.1f}h"
+    return f"{days:.2f}d" if days >= 1 else f"{hours:.2f}h"
+
+
+def _scoped_multiselect(label, options, key):
+    """A multiselect whose valid options change based on an upstream filter
+    (e.g. Team scoped to Project, Board scoped to Team). Prunes any
+    previously-selected values that fall outside the new options on each
+    rerun, falling back to selecting everything newly valid if that empties
+    the selection — instead of letting Streamlit raise on a stale
+    session-state value when the options list shrinks underneath it.
+    """
+    if key in st.session_state:
+        pruned = [v for v in st.session_state[key] if v in options]
+        st.session_state[key] = pruned if pruned else list(options)
+    else:
+        st.session_state[key] = list(options)
+    return st.sidebar.multiselect(label, options, key=key)
 
 
 st.title("AI Jira Flow Intelligence")
@@ -72,11 +88,19 @@ changelog_df = source.get_changelog()
 
 st.sidebar.header("Filters")
 projects = sorted(issues_df["project"].unique())
-teams = sorted(issues_df["team"].unique())
-issue_types = sorted(issues_df["issue_type"].unique())
-
 selected_projects = st.sidebar.multiselect("Project", projects, default=projects)
-selected_teams = st.sidebar.multiselect("Team", teams, default=teams)
+
+# Team narrows to the selected project(s); Board narrows to the selected
+# team(s) in turn — same cascading pattern both times, since a team from an
+# unselected project (or a board from an unselected team) was never a
+# meaningful choice in the first place.
+teams = sorted(issues_df[issues_df["project"].isin(selected_projects)]["team"].unique())
+selected_teams = _scoped_multiselect("Team", teams, key="team_filter")
+
+boards = sorted(issues_df[issues_df["team"].isin(selected_teams)]["board"].unique())
+selected_boards = _scoped_multiselect("Board", boards, key="board_filter")
+
+issue_types = sorted(issues_df["issue_type"].unique())
 selected_types = st.sidebar.multiselect("Issue type", issue_types, default=issue_types)
 
 # Labels/components are optional facets: every value offered is drawn from
@@ -108,6 +132,7 @@ if config.WORKFLOW_STAGES.index(from_stage) >= config.WORKFLOW_STAGES.index(to_s
 mask = (
     issues_df["project"].isin(selected_projects)
     & issues_df["team"].isin(selected_teams)
+    & issues_df["board"].isin(selected_boards)
     & issues_df["issue_type"].isin(selected_types)
     & (issues_df["created"].dt.date >= date_range[0])
     & (issues_df["created"].dt.date <= date_range[1])
@@ -168,7 +193,12 @@ with overview_tab:
             alt.Chart(chart_data)
             .mark_bar()
             .encode(
-                x=alt.X("cycle_time_days:Q", bin=alt.Bin(maxbins=15), title="Cycle time (days)"),
+                x=alt.X(
+                    "cycle_time_days:Q",
+                    bin=alt.Bin(maxbins=15),
+                    title="Cycle time (days)",
+                    axis=alt.Axis(format="d"),
+                ),
                 y=alt.Y("count():Q", title="Issues"),
             )
         )
@@ -201,7 +231,7 @@ with bottleneck_tab:
         )
         st.altair_chart(bottleneck_chart, use_container_width=True)
     st.subheader("Stage duration detail (median / P75 / P90 by project + issue type)")
-    st.dataframe(stage_stats_df, width="stretch")
+    st.dataframe(stage_stats_df.round(2), width="stretch")
 
 # --- Ageing WIP -----------------------------------------------------------
 
@@ -224,7 +254,7 @@ with deviations_tab:
     st.header("Deviations")
     st.subheader("Stage outliers (Tukey IQR rule)")
     st.caption("Each flag shows the exact q1/q3/iqr/threshold it was compared against.")
-    st.dataframe(iqr_outliers_df, width="stretch")
+    st.dataframe(iqr_outliers_df.round(2), width="stretch")
 
     st.subheader("Baseline shifts (recent vs. preceding period)")
-    st.dataframe(baseline_shift_df, width="stretch")
+    st.dataframe(baseline_shift_df.round(2), width="stretch")

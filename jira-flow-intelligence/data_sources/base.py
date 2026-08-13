@@ -17,6 +17,7 @@ class JiraDataSource(ABC):
         issue_key        str   e.g. "PAY-1042"
         project           str   project key
         team              str
+        board             str   Jira board name (scoped to team)
         issue_type        str   Story / Bug / Task / Epic / Initiative
         priority          str   Low / Medium / High / Critical
         sprint            str

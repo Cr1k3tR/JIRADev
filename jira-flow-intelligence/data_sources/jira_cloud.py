@@ -32,7 +32,11 @@ class JiraCloudSource(JiraDataSource):
         # labels from fields.labels, components from
         # [c.name for c in fields.components], created/resolved from
         # fields.created / fields.resolutiondate, current_status from
-        # fields.status.name.
+        # fields.status.name. board is NOT a plain issue field in Jira's
+        # REST API — it comes from the separate Agile API
+        # (GET /rest/agile/1.0/board, then board/{id}/issue to see which
+        # issues belong to it), so this will need a second lookup/join,
+        # not just another `fields.*` mapping like the rest of this list.
         raise NotImplementedError(
             "JiraCloudSource.get_issues is a stub — implement the "
             "/rest/api/3/search integration once a real Jira instance and "

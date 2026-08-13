@@ -50,6 +50,10 @@ SYNTHETIC_TEAMS = {
     "PLAT": ["Platform Infra", "Platform Data"],
     "MOB": ["Mobile iOS", "Mobile Android"],
 }
+# Boards are per-team, like most real Jira setups — each team runs both a
+# sprint board and a kanban board. Board therefore always narrows to the
+# currently selected team(s), the same way team narrows to project.
+SYNTHETIC_BOARD_SUFFIXES = ["Sprint Board", "Kanban Board"]
 SYNTHETIC_ISSUE_TYPES = ["Story", "Bug", "Task", "Epic", "Initiative"]
 # Initiative sits above Epic in a typical Jira hierarchy, so it's rarer still.
 SYNTHETIC_ISSUE_TYPE_WEIGHTS = [0.42, 0.30, 0.20, 0.05, 0.03]
