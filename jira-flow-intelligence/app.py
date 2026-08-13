@@ -18,6 +18,24 @@ from data_sources import JiraCloudSource, SyntheticJiraSource
 
 st.set_page_config(page_title="AI Jira Flow Intelligence", layout="wide")
 
+# Streamlit's multiselect value-container hard-clips at max-height:168px with
+# overflow:hidden — with 6+ chips selected (e.g. all teams by default), the
+# last one or two are silently invisible with no indication anything's
+# hidden. Keep the same footprint but make it scrollable instead of clipped,
+# so nothing disappears without a visible scrollbar. Confirmed via direct
+# DOM/computed-style inspection of the live app, not guessed.
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_resource
 def _get_data_source():
@@ -128,6 +146,7 @@ overview_tab, bottleneck_tab, wip_tab, deviations_tab = st.tabs(
 # --- Overview -----------------------------------------------------------
 
 with overview_tab:
+    st.header("Overview")
     st.caption(f"Cycle time measured from **{from_stage}** to **{to_stage}**.")
     closed_cycle = cycle_time_df[~cycle_time_df["is_open"]]
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -166,16 +185,28 @@ with overview_tab:
 # --- Bottlenecks -----------------------------------------------------------
 
 with bottleneck_tab:
+    st.header("Bottlenecks")
     st.subheader("Where does time accumulate? (median hours per stage)")
     if not overall_stage_stats_df.empty:
-        chart_df = overall_stage_stats_df.set_index("stage")["median_hours"].sort_values(ascending=False)
-        st.bar_chart(chart_df)
+        # st.bar_chart re-sorts a string-labeled axis alphabetically (same
+        # root cause as the cycle-time histogram fix) — sort="-y" pins the
+        # bar order to actual descending value instead.
+        bottleneck_chart = (
+            alt.Chart(overall_stage_stats_df)
+            .mark_bar()
+            .encode(
+                x=alt.X("stage:N", sort="-y", title="Stage"),
+                y=alt.Y("median_hours:Q", title="Median hours"),
+            )
+        )
+        st.altair_chart(bottleneck_chart, use_container_width=True)
     st.subheader("Stage duration detail (median / P75 / P90 by project + issue type)")
     st.dataframe(stage_stats_df, width="stretch")
 
 # --- Ageing WIP -----------------------------------------------------------
 
 with wip_tab:
+    st.header("Ageing WIP")
     st.subheader("Currently open issues, oldest first")
     display_df = ageing_df.copy()
     if not display_df.empty:
@@ -190,6 +221,7 @@ with wip_tab:
 # --- Deviations -----------------------------------------------------------
 
 with deviations_tab:
+    st.header("Deviations")
     st.subheader("Stage outliers (Tukey IQR rule)")
     st.caption("Each flag shows the exact q1/q3/iqr/threshold it was compared against.")
     st.dataframe(iqr_outliers_df, width="stretch")
