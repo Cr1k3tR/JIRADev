@@ -1,7 +1,7 @@
 """Data-source interface shared by synthetic and real Jira implementations.
 
-Everything downstream (metrics.py, insights.py, app.py) depends only on the
-two DataFrame contracts below — swapping SyntheticJiraSource for a real
+Everything downstream (metrics.py, app.py) depends only on the two
+DataFrame contracts below — swapping SyntheticJiraSource for a real
 JiraCloudSource should never require touching those modules.
 """
 
@@ -21,6 +21,7 @@ class JiraDataSource(ABC):
         priority          str   Low / Medium / High / Critical
         sprint            str
         labels            list[str]
+        components        list[str]
         created           pd.Timestamp
         resolved          pd.Timestamp or NaT (open issues)
         current_status    str   last status in that issue's changelog

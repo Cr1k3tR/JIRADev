@@ -2,9 +2,9 @@
 
 This is the seam for plugging in a live Jira instance once a base URL and
 API token are available. Filling in the two methods below should be the
-*only* change required to move off synthetic data — metrics.py, insights.py,
-and app.py depend solely on the JiraDataSource DataFrame contract, not on
-where the data came from.
+*only* change required to move off synthetic data — metrics.py and app.py
+depend solely on the JiraDataSource DataFrame contract, not on where the
+data came from.
 
 Jira Cloud auth: HTTP Basic auth with (email, api_token) — NOT a bearer
 token. See https://id.atlassian.com/manage-profile/security/api-tokens to
@@ -29,8 +29,10 @@ class JiraCloudSource(JiraDataSource):
         # get_issues() column contract documented in base.py — issue_type
         # from fields.issuetype.name, priority from fields.priority.name,
         # team likely needs a custom field or project->team lookup table,
-        # labels from fields.labels, created/resolved from fields.created /
-        # fields.resolutiondate, current_status from fields.status.name.
+        # labels from fields.labels, components from
+        # [c.name for c in fields.components], created/resolved from
+        # fields.created / fields.resolutiondate, current_status from
+        # fields.status.name.
         raise NotImplementedError(
             "JiraCloudSource.get_issues is a stub — implement the "
             "/rest/api/3/search integration once a real Jira instance and "
