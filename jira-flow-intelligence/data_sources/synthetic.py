@@ -76,6 +76,7 @@ class SyntheticJiraSource(JiraDataSource):
             issue_key = f"{project}-{project_counters[project]}"
 
             team = rng.choice(config.SYNTHETIC_TEAMS[project])
+            board = f"{team} {rng.choice(config.SYNTHETIC_BOARD_SUFFIXES)}"
             issue_type = rng.choice(
                 config.SYNTHETIC_ISSUE_TYPES, p=config.SYNTHETIC_ISSUE_TYPE_WEIGHTS
             )
@@ -146,6 +147,7 @@ class SyntheticJiraSource(JiraDataSource):
                     "issue_key": issue_key,
                     "project": project,
                     "team": team,
+                    "board": board,
                     "issue_type": issue_type,
                     "priority": priority,
                     "sprint": sprint,

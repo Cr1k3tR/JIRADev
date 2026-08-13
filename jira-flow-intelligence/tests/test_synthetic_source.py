@@ -5,7 +5,7 @@ import metrics
 from data_sources import SyntheticJiraSource
 
 ISSUE_COLUMNS = {
-    "issue_key", "project", "team", "issue_type", "priority", "sprint",
+    "issue_key", "project", "team", "board", "issue_type", "priority", "sprint",
     "labels", "components", "created", "resolved", "current_status", "reopened_count",
 }
 CHANGELOG_COLUMNS = {"issue_key", "stage", "entered_at", "exited_at"}
@@ -124,3 +124,21 @@ def test_components_are_project_scoped():
         assert set(row["components"]).issubset(allowed), (
             f"{row['issue_key']} has a component not in its project's pool"
         )
+
+
+def test_board_is_team_scoped():
+    issues = _make_source(num_issues=500).get_issues()
+    allowed_suffixes = tuple(config.SYNTHETIC_BOARD_SUFFIXES)
+
+    for _, row in issues.iterrows():
+        expected_prefix = f"{row['team']} "
+        assert row["board"].startswith(expected_prefix), (
+            f"{row['issue_key']}'s board {row['board']!r} doesn't belong to its own team {row['team']!r}"
+        )
+        assert row["board"].endswith(allowed_suffixes), (
+            f"{row['issue_key']}'s board {row['board']!r} doesn't use a known board suffix"
+        )
+
+    # more than one board per team should actually show up across 500 issues
+    boards_per_team = issues.groupby("team")["board"].nunique()
+    assert (boards_per_team > 1).any()
