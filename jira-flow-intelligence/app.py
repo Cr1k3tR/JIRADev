@@ -83,6 +83,7 @@ st.caption(
 source = _get_data_source()
 issues_df = source.get_issues()
 changelog_df = source.get_changelog()
+now = pd.Timestamp.now()
 
 # --- Sidebar filters -----------------------------------------------------------
 
@@ -112,11 +113,14 @@ for facet_field, facet_label in FACET_FIELDS:
     facet_pool = sorted({value for row in issues_df[facet_field] for value in row})
     selected_facets[facet_field] = st.sidebar.multiselect(facet_label, facet_pool, default=[])
 
+today = now.date()
 min_date = issues_df["created"].min().date()
-max_date = issues_df["created"].max().date()
-date_range = st.sidebar.slider(
-    "Created date range", min_value=min_date, max_value=max_date, value=(min_date, max_date)
-)
+date_from = st.sidebar.date_input("Created from", value=min_date, min_value=min_date, max_value=today)
+date_to = st.sidebar.date_input("Created to", value=today, min_value=min_date, max_value=today)
+if date_from > date_to:
+    st.sidebar.error("'Created from' must be on or before 'Created to'.")
+    st.stop()
+date_range = (date_from, date_to)
 
 st.sidebar.header("Cycle time boundaries")
 from_stage = st.sidebar.selectbox(
@@ -149,8 +153,9 @@ if filtered_issues.empty:
 filtered_changelog = changelog_df[changelog_df["issue_key"].isin(filtered_issues["issue_key"])]
 
 # --- Shared metrics computation -----------------------------------------------------------
+# `now` was captured once above (right after loading data) so the date-range
+# picker and every right-censoring calculation below use the same instant.
 
-now = pd.Timestamp.now()
 stage_durations_df = metrics.compute_stage_durations(filtered_issues, filtered_changelog, now=now)
 cycle_time_df = metrics.cycle_time(
     filtered_issues, filtered_changelog, start_stage=from_stage, end_stage=to_stage, now=now
