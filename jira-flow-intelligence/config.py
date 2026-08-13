@@ -50,8 +50,9 @@ SYNTHETIC_TEAMS = {
     "PLAT": ["Platform Infra", "Platform Data"],
     "MOB": ["Mobile iOS", "Mobile Android"],
 }
-SYNTHETIC_ISSUE_TYPES = ["Story", "Bug", "Task", "Epic"]
-SYNTHETIC_ISSUE_TYPE_WEIGHTS = [0.45, 0.30, 0.20, 0.05]
+SYNTHETIC_ISSUE_TYPES = ["Story", "Bug", "Task", "Epic", "Initiative"]
+# Initiative sits above Epic in a typical Jira hierarchy, so it's rarer still.
+SYNTHETIC_ISSUE_TYPE_WEIGHTS = [0.42, 0.30, 0.20, 0.05, 0.03]
 SYNTHETIC_PRIORITIES = ["Low", "Medium", "High", "Critical"]
 SYNTHETIC_PRIORITY_WEIGHTS = [0.20, 0.45, 0.25, 0.10]
 SYNTHETIC_LABEL_POOL = [
