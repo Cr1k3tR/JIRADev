@@ -63,10 +63,11 @@ selected_types = st.sidebar.multiselect("Issue type", issue_types, default=issue
 # Labels/components are optional facets: every value offered is drawn from
 # the currently loaded data (locked & controlled — no free text), but an
 # empty selection means "don't filter on this" rather than "match nothing".
-label_pool = sorted({label for row in issues_df["labels"] for label in row})
-component_pool = sorted({comp for row in issues_df["components"] for comp in row})
-selected_labels = st.sidebar.multiselect("Labels (optional)", label_pool, default=[])
-selected_components = st.sidebar.multiselect("Components (optional)", component_pool, default=[])
+FACET_FIELDS = [("labels", "Labels (optional)"), ("components", "Components (optional)")]
+selected_facets = {}
+for facet_field, facet_label in FACET_FIELDS:
+    facet_pool = sorted({value for row in issues_df[facet_field] for value in row})
+    selected_facets[facet_field] = st.sidebar.multiselect(facet_label, facet_pool, default=[])
 
 min_date = issues_df["created"].min().date()
 max_date = issues_df["created"].max().date()
@@ -92,10 +93,9 @@ mask = (
     & (issues_df["created"].dt.date >= date_range[0])
     & (issues_df["created"].dt.date <= date_range[1])
 )
-if selected_labels:
-    mask &= issues_df["labels"].apply(lambda row: any(label in selected_labels for label in row))
-if selected_components:
-    mask &= issues_df["components"].apply(lambda row: any(comp in selected_components for comp in row))
+for facet_field, selected in selected_facets.items():
+    if selected:
+        mask &= issues_df[facet_field].apply(lambda row, selected=selected: any(v in selected for v in row))
 filtered_issues = issues_df[mask]
 
 if filtered_issues.empty:
