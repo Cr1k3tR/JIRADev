@@ -8,6 +8,7 @@ in this app.
 
 import os
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -139,10 +140,20 @@ with overview_tab:
 
     st.subheader("Cycle time distribution")
     if not closed_cycle.empty:
-        bins = pd.cut(closed_cycle["cycle_time_hours"] / 24.0, bins=15)
-        hist = bins.value_counts().sort_index()
-        hist.index = hist.index.astype(str)
-        st.bar_chart(hist)
+        # Let Altair bin natively (quantitative x-axis) instead of pre-binning
+        # with pd.cut into string interval labels — a string-labeled index
+        # gets sorted alphabetically by st.bar_chart ("11.2" before "2.3"),
+        # which silently scrambles the histogram's bar order.
+        chart_data = pd.DataFrame({"cycle_time_days": closed_cycle["cycle_time_hours"] / 24.0})
+        histogram = (
+            alt.Chart(chart_data)
+            .mark_bar()
+            .encode(
+                x=alt.X("cycle_time_days:Q", bin=alt.Bin(maxbins=15), title="Cycle time (days)"),
+                y=alt.Y("count():Q", title="Issues"),
+            )
+        )
+        st.altair_chart(histogram, use_container_width=True)
     else:
         st.info("No completed issues in this filter selection yet.")
 
